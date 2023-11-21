@@ -1,7 +1,7 @@
 import numpy as np
 from PIL import Image, ImageDraw
 
-def save_sample(img, target, fn, save=True):
+def save_sample(img, target, evaluate_result, path, save=True):
     """
     Show a sample image
     :param img: Tensor of shape (3, H, W)
@@ -20,10 +20,11 @@ def save_sample(img, target, fn, save=True):
     draw = ImageDraw.Draw(image)
     for bbox_id in range(bboxes.shape[0]):
         bbox = list(bboxes[bbox_id, :])
-        draw.rectangle(bbox, outline=(255, 0, 255))
+        if evaluate_result[bbox_id]['score'] > 0.45:
+            draw.rectangle(bbox, outline=(255, 201, 14), width=2)
 
-    if show:
-        image.save(fn)
+    if save:
+        image.save(path)
 
     return image
 

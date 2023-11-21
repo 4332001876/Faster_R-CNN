@@ -23,13 +23,13 @@ if __name__ == "__main__":
 
 # Suppose you are trying to load pre-trained resnet model in directory- models\resnet
 
-    os.environ['TORCH_HOME'] = './models'
+    # os.environ['TORCH_HOME'] = './models'
 
     dataset = PennFudanDataset(root_path, transforms=Compose([ToTensor()]))
 
     # split the dataset in train and test set
     torch.manual_seed(42)
-    indices = torch.randperm(len(dataset)).tolist()
+    indices = torch.randperm(len(dataset)).tolist() # randperm：生成一个随机排列
     dataset_train = torch.utils.data.Subset(dataset, indices[:-50])
     dataset_test = torch.utils.data.Subset(dataset, indices[-50:])
 

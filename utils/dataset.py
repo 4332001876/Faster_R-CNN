@@ -54,6 +54,7 @@ class PennFudanDataset(torch.utils.data.Dataset):
         image_id = torch.tensor([idx])
 
         target = {"boxes": boxes, "labels": labels, "image_id": image_id}
+        # target = {"boxes": boxes, "labels": labels, "image_id": image_id, "masks": torch.as_tensor(masks, dtype=torch.uint8)}
 
         if self.transforms:
             img, target = self.transforms(img, target)

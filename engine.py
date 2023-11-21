@@ -4,12 +4,13 @@ import numpy as np
 
 import time
 
-from torchvision.models.detection import fasterrcnn_resnet50_fpn
+from torchvision.models.detection import fasterrcnn_resnet50_fpn, maskrcnn_resnet50_fpn
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 
 from sklearn.metrics import auc
 
 from utils.evaluation import evaluate_sample
+from utils.utils import save_sample
 
 
 def get_detection_model(num_classes=2):
@@ -18,7 +19,13 @@ def get_detection_model(num_classes=2):
     :param num_classes: The number of classes that the model should detect
     :return: Torch model
     """
+    
     model = fasterrcnn_resnet50_fpn(pretrained=False)
+    # model = maskrcnn_resnet50_fpn(pretrained=False)
+    # model = fasterrcnn_resnet50_fpn(pretrained=False, pretrained_backbone=True)
+
+    # state_dict = torch.load('./models/hub/checkpoints/resnet50-0676ba61.pth')
+    # model.backbone.body.load_state_dict(state_dict)
 
     count = 0
     for child in model.backbone.children():
@@ -78,7 +85,7 @@ def train(model, num_epochs,train_loader, test_loader, optimizer, device, save_p
         print("epoch {}/{}..".format(epoch, num_epochs))
         start = time.time()
         train_one_epoch(model, optimizer, train_loader, device)
-        mAP = evaluate(model, test_loader, device=device)
+        mAP = evaluate(model, test_loader, device=device, epoch_num=epoch)
         end = time.time()
 
         print("epoch {} done in {}s".format(epoch, round(end - start, 2)))
@@ -96,7 +103,7 @@ def train(model, num_epochs,train_loader, test_loader, optimizer, device, save_p
                os.path.join(save_path, str(num_epochs) + ".pth"))
 
 
-def evaluate(model, test_loader, device):
+def evaluate(model, test_loader, device, epoch_num=0):
     """
     Computes precision and recall for a given trehsold (default = 0.5)
     :param model :
@@ -107,6 +114,7 @@ def evaluate(model, test_loader, device):
     results = []
     model.eval()
     nbr_boxes = 0
+    count_save_img = 0
     with torch.no_grad():
         for batch, (images, targets_true) in enumerate(test_loader):
             images = list(image.to(device).float() for image in images)
@@ -115,12 +123,19 @@ def evaluate(model, test_loader, device):
             targets_true = [{k: v.cpu().float() for k, v in t.items()} for t in targets_true]
             targets_pred = [{k: v.cpu().float() for k, v in t.items()} for t in targets_pred]
 
-            for ii in range(len(targets_true)):
-                target_true = targets_true[ii]
-                target_pred = targets_pred[ii]
+            os.makedirs('results', exist_ok=True)
+
+            for i in range(len(targets_true)):
+                target_true = targets_true[i]
+                target_pred = targets_pred[i]
                 nbr_boxes += target_true['labels'].shape[0]
 
-                results = results + evaluate_sample(target_pred, target_true)
+                evaluate_result = evaluate_sample(target_pred, target_true)
+                results = results + evaluate_result
+                
+                count_save_img += 1
+                file_path = 'results/epoch{}_{}.png'.format(epoch_num, count_save_img)
+                save_sample(images[i].cpu(), targets_pred[i], evaluate_result, file_path, save=True)
 
     results = sorted(results, key=lambda k: k['score'], reverse=True)
 
